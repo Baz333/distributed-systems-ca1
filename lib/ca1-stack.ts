@@ -16,6 +16,7 @@ export class Ca1Stack extends cdk.Stack {
 		const albumsTable = new dynamodb.Table(this, "AlbumsTable", {
 			billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
 			partitionKey: {name: "id", type: dynamodb.AttributeType.NUMBER},
+			sortKey: {name: "artist", type: dynamodb.AttributeType.STRING},
 			removalPolicy: cdk.RemovalPolicy.DESTROY,
 			tableName: "Albums",
 		});
@@ -70,9 +71,22 @@ export class Ca1Stack extends cdk.Stack {
 			}
 		);
 
+		const addAlbumFn = new lambdanode.NodejsFunction(this, "AddAlbumFn", {
+			architecture: lambda.Architecture.ARM_64,
+			runtime: lambda.Runtime.NODEJS_18_X,
+			entry: `${__dirname}/../lambda/addAlbum.ts`,
+			timeout: cdk.Duration.seconds(10),
+			memorySize: 128,
+			environment: {
+				TABLE_NAME: albumsTable.tableName,
+				REGION: "eu-west-1",
+			},
+		});
+
 		//Permissions
 		albumsTable.grantReadData(getAllAlbumsFn)
 		albumsTable.grantReadData(getAlbumByIdFn)
+		albumsTable.grantReadWriteData(addAlbumFn)
 
 		//REST API setup
 		const api = new apig.RestApi(this, "RestAPI", {
@@ -93,6 +107,10 @@ export class Ca1Stack extends cdk.Stack {
 		albumsEndpoint.addMethod(
 			"GET",
 			new apig.LambdaIntegration(getAllAlbumsFn, {proxy: true})
+		);
+		albumsEndpoint.addMethod(
+			"POST",
+			new apig.LambdaIntegration(addAlbumFn, {proxy: true})
 		);
 
 		const albumEndpoint = albumsEndpoint.addResource("{albumId}");
