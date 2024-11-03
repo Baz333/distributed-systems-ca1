@@ -7,6 +7,7 @@ const ddbDocClient = createDDbDocClient();
 export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
     try {
         console.log("[EVENT]: ", JSON.stringify(event));
+        const artist = event.queryStringParameters?.artist || undefined;
 
         const commandOutput = await ddbDocClient.send(
             new ScanCommand({
@@ -22,8 +23,11 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
                 body: JSON.stringify({ Message: "Invalid album id" }),
             };
         }
+
+        const filteredItems = artist ? commandOutput.Items.filter(album => album.artist === artist) : commandOutput.Items;
+
         const body = {
-            data: commandOutput.Items,
+            data: filteredItems,
         };
 
         return {
