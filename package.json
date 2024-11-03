@@ -8,7 +8,8 @@
     "build": "tsc",
     "watch": "tsc -w",
     "test": "jest",
-    "cdk": "cdk"
+    "cdk": "cdk",
+    "schema": "typescript-json-schema --noExtraProps --required --refs false -o ./shared/types.schema.json  \"./shared/types.d.ts\" \"*\""
   },
   "devDependencies": {
     "@types/jest": "^29.5.12",
@@ -17,7 +18,8 @@
     "jest": "^29.7.0",
     "ts-jest": "^29.1.5",
     "ts-node": "^10.9.2",
-    "typescript": "~5.5.3"
+    "typescript": "~5.5.3",
+    "typescript-json-schema": "^0.65.1"
   },
   "dependencies": {
     "@aws-sdk/lib-dynamodb": "^3.685.0",
