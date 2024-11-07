@@ -83,10 +83,23 @@ export class Ca1Stack extends cdk.Stack {
 			},
 		});
 
+		const updateAlbumFn = new lambdanode.NodejsFunction(this, "UpdateAlbumFn", {
+			architecture: lambda.Architecture.ARM_64,
+			runtime: lambda.Runtime.NODEJS_18_X,
+			entry: `${__dirname}/../lambda/updateAlbum.ts`,
+			timeout: cdk.Duration.seconds(10),
+			memorySize: 128,
+			environment: {
+				TABLE_NAME: albumsTable.tableName,
+				REGION: "eu-west-1",
+			},
+		});
+
 		//Permissions
 		albumsTable.grantReadData(getAllAlbumsFn)
 		albumsTable.grantReadData(getAlbumByIdFn)
 		albumsTable.grantReadWriteData(addAlbumFn)
+		albumsTable.grantReadWriteData(updateAlbumFn)
 
 		//REST API setup
 		const api = new apig.RestApi(this, "RestAPI", {
@@ -117,6 +130,10 @@ export class Ca1Stack extends cdk.Stack {
 		albumEndpoint.addMethod(
 			"GET",
 			new apig.LambdaIntegration(getAlbumByIdFn, {proxy: true})
+		);
+		albumEndpoint.addMethod(
+			"PUT",
+			new apig.LambdaIntegration(updateAlbumFn, {proxy: true})
 		);
 	}
 }
