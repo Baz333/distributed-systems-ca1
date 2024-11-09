@@ -1,6 +1,7 @@
 import { APIGatewayProxyHandlerV2 } from "aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient, UpdateCommand } from "@aws-sdk/lib-dynamodb";
+import { DynamoDBDocumentClient, UpdateCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
+import { CookieMap, createPolicy, JwtToken, parseCookies, verifyToken } from "./utils";
 import Ajv from "ajv";
 import schema from "../shared/types.schema.json";
 
@@ -11,13 +12,28 @@ const isValidBodyParams = ajv.compile(
 
 const ddbDocClient = createDDbDocClient();
 
-export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
+export const handler: APIGatewayProxyHandlerV2 = async (event: any, context) => {
     try {
         console.log("[EVENT]", JSON.stringify(event));
         const body = event.body ? JSON.parse(event.body) : undefined;
         const parameters = event?.pathParameters;
         const albumId = parameters?.albumId ? parseInt(parameters.albumId) : undefined;
         const artist = event.queryStringParameters?.artist || undefined;
+        const cookies: CookieMap = parseCookies(event);
+
+        if (!cookies) {
+            return {
+                statusCode: 200,
+                body: "Unauthorised request",
+            };
+        }
+
+        const verifiedJwt: JwtToken = await verifyToken(
+            cookies.token,
+            process.env.USER_POOL_ID,
+            process.env.REGION!
+        );
+        console.log(JSON.stringify(verifiedJwt));
 
         if (!albumId) {
             return {
@@ -61,6 +77,35 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
             };
         }
 
+        const albumToUpdate = await ddbDocClient.send(
+            new QueryCommand({
+                TableName: process.env.TABLE_NAME,
+                KeyConditionExpression: "id = :id AND artist = :a",
+                ExpressionAttributeValues: {
+                    ":id": albumId,
+                    ":a": artist,
+                },
+            })
+        );
+
+        if (!albumToUpdate.Items) {
+            return {
+                statusCode: 404,
+                body: JSON.stringify({ message: "Album not found" }),
+            };
+        }
+
+        if (!albumToUpdate.Items[0].userId || albumToUpdate.Items[0].userId !== verifiedJwt?.sub) {
+            return {
+                statusCode: 403,
+                body: JSON.stringify({ 
+                    message: "Unauthorised user. The creator of this album must update it.",
+                    userId: albumToUpdate.Items[0].userId,
+                    sub: verifiedJwt?.sub
+                }),
+            };
+        }
+
         const commandOutput = await ddbDocClient.send(
             new UpdateCommand({
                 TableName: process.env.TABLE_NAME,
@@ -77,7 +122,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
                 }
             })
         );
-        
+
         return {
             statusCode: 200,
             headers: {

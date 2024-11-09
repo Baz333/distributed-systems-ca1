@@ -38,6 +38,8 @@ export class Ca1Stack extends cdk.Stack {
 			}),
 		});
 
+		const userPoolId = cdk.Fn.importValue("AuthStack-UserPoolId")
+
 		//Functions
 		const getAllAlbumsFn = new lambdanode.NodejsFunction(
 			this,
@@ -80,6 +82,7 @@ export class Ca1Stack extends cdk.Stack {
 			environment: {
 				TABLE_NAME: albumsTable.tableName,
 				REGION: "eu-west-1",
+				USER_POOL_ID: userPoolId,
 			},
 		});
 
@@ -92,6 +95,7 @@ export class Ca1Stack extends cdk.Stack {
 			environment: {
 				TABLE_NAME: albumsTable.tableName,
 				REGION: "eu-west-1",
+				USER_POOL_ID: userPoolId,
 			},
 		});
 

@@ -16,10 +16,11 @@ export const handler: APIGatewayProxyHandlerV2 = async (event: any, context) => 
     try {
         console.log("[EVENT]", JSON.stringify(event));
         const cookies: CookieMap = parseCookies(event);
+
         if (!cookies) {
             return {
                 statusCode: 200,
-                body: "Unauthorised request!!",
+                body: "Unauthorised request",
             };
         }
 
@@ -29,6 +30,14 @@ export const handler: APIGatewayProxyHandlerV2 = async (event: any, context) => 
             process.env.REGION!
         );
         console.log(JSON.stringify(verifiedJwt));
+
+        const userId = verifiedJwt?.sub;
+        if (!userId) {
+            return {
+                statusCode: 400,
+                body: JSON.stringify({ message: "User ID is missing from token" }),
+            };
+        }
 
         const body = event.body ? JSON.parse(event.body) : undefined;
         if(!body) {
@@ -54,10 +63,15 @@ export const handler: APIGatewayProxyHandlerV2 = async (event: any, context) => 
             };
         }
 
+        const item = {
+            ...body,
+            userId: verifiedJwt?.sub
+        }
+
         const commandOutput = await ddbDocClient.send(
             new PutCommand({
                 TableName: process.env.TABLE_NAME,
-                Item: body,
+                Item: item,
             })
         );
         
@@ -66,7 +80,11 @@ export const handler: APIGatewayProxyHandlerV2 = async (event: any, context) => 
             headers: {
                 "content-type": "application/json",
             },
-            body: JSON.stringify({message: "Album added"}),
+            body: JSON.stringify({
+                message: "Album added",
+                userPoolId: process.env.USER_POOL_ID,
+                body: item
+            }),
         };
     } catch (error: any) {
         console.log(JSON.stringify(error));

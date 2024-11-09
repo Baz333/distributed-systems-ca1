@@ -32,6 +32,9 @@ export class AuthAppStack extends cdk.Stack {
       userPoolClientId: userPoolClientId,
     } );
 
+    new cdk.CfnOutput(this, "UserPoolId", {
+      value: userPoolId,
+      exportName: "AuthStack-UserPoolId",
+    });
   } 
-
 }

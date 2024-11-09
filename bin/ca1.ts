@@ -5,7 +5,7 @@ import { Ca1Stack } from '../lib/ca1-stack';
 import { AuthAppStack } from '../lib/auth-app-stack';
 
 const app = new cdk.App();
-new Ca1Stack(app, 'Ca1Stack', {
+const ca1Stack = new Ca1Stack(app, 'Ca1Stack', {
   /* If you don't specify 'env', this stack will be environment-agnostic.
    * Account/Region-dependent features and context lookups will not work,
    * but a single synthesized template can be deployed anywhere. */
@@ -21,6 +21,8 @@ new Ca1Stack(app, 'Ca1Stack', {
   /* For more information, see https://docs.aws.amazon.com/cdk/latest/guide/environments.html */
 });
 
-new AuthAppStack(app, 'AuthAppStack', {
+const authAppStack = new AuthAppStack(app, 'AuthAppStack', {
 
 });
+
+ca1Stack.addDependency(authAppStack)
