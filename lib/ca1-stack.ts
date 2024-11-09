@@ -4,6 +4,7 @@ import * as lambdanode from "aws-cdk-lib/aws-lambda-nodejs";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as custom from "aws-cdk-lib/custom-resources";
+import * as iam from "aws-cdk-lib/aws-iam"
 import { Construct } from "constructs";
 import { generateBatch } from "../shared/util";
 import { albums } from "../seed/albums";
@@ -104,6 +105,11 @@ export class Ca1Stack extends cdk.Stack {
 		albumsTable.grantReadData(getAlbumByIdFn)
 		albumsTable.grantReadWriteData(addAlbumFn)
 		albumsTable.grantReadWriteData(updateAlbumFn)
+		
+		getAlbumByIdFn.addToRolePolicy(new iam.PolicyStatement({
+			actions: ["translate:TranslateText"],
+			resources: ["*"],
+		}));
 
 		//REST API setup
 		const api = new apig.RestApi(this, "RestAPI", {

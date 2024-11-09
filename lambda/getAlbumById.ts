@@ -1,8 +1,10 @@
 import { APIGatewayProxyHandlerV2 } from "aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, GetCommand, QueryCommandInput, QueryCommand } from "@aws-sdk/lib-dynamodb";
+import { TranslateClient, TranslateTextCommand } from "@aws-sdk/client-translate";
 
 const ddbDocClient = createDDbDocClient();
+const translateClient = new TranslateClient({ region: process.env.REGION });
 
 export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
     try {
@@ -10,6 +12,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
         const parameters = event?.pathParameters;
         const albumId = parameters?.albumId ? parseInt(parameters.albumId) : undefined;
         const artist = event.queryStringParameters?.artist || undefined;
+        const translate = event.queryStringParameters?.translate || undefined;
 
         if (!albumId) {
             return {
@@ -40,6 +43,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
                 },
             })
         );
+
         console.log("GetCommand response: ", commandOutput);
         if (!commandOutput.Items) {
             return {
@@ -53,6 +57,17 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
         const body: any = {
             data: commandOutput.Items,
         };
+
+        if(translate) {
+            const translation = await translateClient.send(
+                new TranslateTextCommand({
+                    Text: commandOutput.Items[0].review,
+                    SourceLanguageCode: "en",
+                    TargetLanguageCode: translate,
+                })
+            );
+            commandOutput.Items[0].review = translation.TranslatedText;
+        }
 
         return {
             statusCode: 200,
