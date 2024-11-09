@@ -1,6 +1,7 @@
 import { APIGatewayProxyHandlerV2 } from "aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb";
+import { CookieMap, createPolicy, JwtToken, parseCookies, verifyToken } from "./utils";
 import Ajv from "ajv";
 import schema from "../shared/types.schema.json";
 
@@ -11,9 +12,24 @@ const isValidBodyParams = ajv.compile(
 
 const ddbDocClient = createDDbDocClient();
 
-export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
+export const handler: APIGatewayProxyHandlerV2 = async (event: any, context) => {
     try {
         console.log("[EVENT]", JSON.stringify(event));
+        const cookies: CookieMap = parseCookies(event);
+        if (!cookies) {
+            return {
+                statusCode: 200,
+                body: "Unauthorised request!!",
+            };
+        }
+
+        const verifiedJwt: JwtToken = await verifyToken(
+            cookies.token,
+            process.env.USER_POOL_ID,
+            process.env.REGION!
+        );
+        console.log(JSON.stringify(verifiedJwt));
+
         const body = event.body ? JSON.parse(event.body) : undefined;
         if(!body) {
             return {

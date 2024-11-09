@@ -2,6 +2,7 @@
 import 'source-map-support/register';
 import * as cdk from 'aws-cdk-lib';
 import { Ca1Stack } from '../lib/ca1-stack';
+import { AuthAppStack } from '../lib/auth-app-stack';
 
 const app = new cdk.App();
 new Ca1Stack(app, 'Ca1Stack', {
@@ -18,4 +19,8 @@ new Ca1Stack(app, 'Ca1Stack', {
   // env: { account: '123456789012', region: 'us-east-1' },
 
   /* For more information, see https://docs.aws.amazon.com/cdk/latest/guide/environments.html */
+});
+
+new AuthAppStack(app, 'AuthAppStack', {
+
 });
