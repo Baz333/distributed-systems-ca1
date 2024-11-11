@@ -44,7 +44,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
         await client.send(command);
 
         return {
-            statusCode: 500,
+            statusCode: 200,
             body: JSON.stringify({
                 message: `User ${confirmSignUpBody.username} successfully confirmed`,
                 confirmed: true,
