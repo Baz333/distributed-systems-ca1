@@ -5,6 +5,6 @@ import { Ca1Stack } from '../lib/ca1-stack';
 
 const app = new cdk.App();
 
-new Ca1Stack(app, 'AuthAppStack', {
+new Ca1Stack(app, 'Ca1Stack', {
 
 });
